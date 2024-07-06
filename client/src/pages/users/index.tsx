@@ -4,10 +4,9 @@ import { openModal } from '../../service/slices/modal';
 import { ModalType } from '../../service/slices/modal/index.types';
 import ModalSwitch from '../../components/modal_switch';
 import Form from 'react-bootstrap/Form';
-import { useEffect, useState } from 'react';
-import { getUsersThunk, removeUser } from '../../service/slices/users';
+import { useState } from 'react';
 import Spinner from 'react-bootstrap/Spinner';
-import { deleteUserInDb } from '../../utils/api';
+import { deleteUser } from '../../utils/api';
 
 export default function Users() {
   const dispatch = useAppDispatch();
@@ -15,12 +14,10 @@ export default function Users() {
   const [activeItem, setActiveItem] = useState('');
   const [isActiveItem, setIsActiveItem] = useState(false);
 
-  useEffect(() => {
-    dispatch(getUsersThunk());
-  }, []);
+  const refreshToken = localStorage.getItem('refreshToken');
 
   const handleRemoveUser = () => {
-    deleteUserInDb(activeItem, dispatch);
+    refreshToken && deleteUser(activeItem, refreshToken, dispatch);
   };
 
   const userList = users.map((user) => {

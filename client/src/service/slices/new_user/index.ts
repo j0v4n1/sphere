@@ -4,6 +4,7 @@ import { Role } from '../../../components/navbar/index.types';
 import { Payload } from '../../../components/user_create/index.types';
 
 const initialState: User = {
+  _id: '',
   name: '',
   email: '',
   password: '',

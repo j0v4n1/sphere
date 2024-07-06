@@ -1,6 +1,6 @@
 import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
 import { getUsers } from '../../../utils/api';
-import { UsersState, UserWithTokens } from './index.types';
+import { UserItem, UsersState } from './index.types';
 
 export const getUsersThunk = createAsyncThunk('users/getUsers', async () => {
   return await getUsers();
@@ -17,7 +17,7 @@ const users = createSlice({
   name: 'users',
   initialState,
   reducers: {
-    addNewUser: (state, action: PayloadAction<UserWithTokens>) => {
+    addNewUser: (state, action: PayloadAction<UserItem>) => {
       state.users.push(action.payload);
     },
     removeUser: (state, action: PayloadAction<string>) => {
@@ -31,7 +31,7 @@ const users = createSlice({
     });
     builder.addCase(
       getUsersThunk.fulfilled,
-      (state, action: PayloadAction<{ status: string; data: UserWithTokens[] }>) => {
+      (state, action: PayloadAction<{ status: string; data: UserItem[] }>) => {
         state.loading = false;
         state.request = false;
         state.users = action.payload.data;

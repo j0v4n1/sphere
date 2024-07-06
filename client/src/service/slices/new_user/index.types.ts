@@ -1,6 +1,7 @@
 import { Role } from 'components/navbar/index.types';
 
 export type User = {
+  _id: string;
   name: string;
   email: string;
   password: string;
@@ -9,7 +10,6 @@ export type User = {
 };
 
 export type AuthUserState = Omit<User, 'role' | 'password'> & {
-  _id: string;
   accessToken: string;
   role: Role | null;
 };

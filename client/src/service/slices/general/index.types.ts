@@ -32,6 +32,7 @@ export type InitialState = {
   request: boolean;
   loading: boolean;
   failed: boolean;
+  isLogout: boolean;
   providers: TProvider[];
   brands: TBrand[];
   products: TProduct[];

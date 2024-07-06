@@ -1,46 +1,65 @@
-import User, { User as TUser } from '../models/users';
+import User, { TUser } from '../models/users';
 import bcrypt from 'bcrypt';
 import TokenService from './token-service';
-import { FIND_USER_ERROR, INCORRECT_PASSWORD } from '../constants/messages';
 import { JwtPayload } from 'jsonwebtoken';
+import UserDto from '../dtos/user-dto';
+import ApiError from '../errors/api-error';
 
 class UserService {
-  async registration(userFields: TUser, payload: { name: string; email: string; passport: string }) {
+  async registration(userFields: TUser) {
     const { password, ...rest } = userFields;
     const hashedPassword = await bcrypt.hash(password, 10);
     const newUSer = await User.create({ ...rest, password: hashedPassword });
-    const tokens = TokenService.generateTokens({ id: newUSer._id.toString(), ...payload });
-    await TokenService.saveToken(newUSer._id, tokens.refreshToken);
-    const { _id, name, email, role, passport } = newUSer;
+    if (!newUSer) {
+      throw ApiError.serverSideError('создание пользователя');
+    }
+    const { _id, name, passport, role, email } = newUSer;
     return {
-      ...tokens,
       _id,
       name,
-      email,
-      role,
       passport,
+      role,
+      email,
     };
   }
   async getUsers() {
-    return await User.find();
+    const users = await User.find({}, ['name', 'email', 'role', 'passport'], null);
+    if (!users) {
+      throw ApiError.notFoundError('пользователей');
+    }
+    return users;
   }
-  async login(authData: string | { id: string | JwtPayload; password: string }) {
-    if (typeof authData === 'string') {
-      return await User.findById(authData);
-    }
-    const user = await User.findById(authData.id);
+  async login(_id: string | JwtPayload, password: string, payload: { name: string; email: string; passport: string }) {
+    const user = await User.findById(_id);
     if (!user) {
-      return { message: FIND_USER_ERROR };
+      throw ApiError.serverSideError('пользователь');
     }
-    const passwordFromBd = user.password;
-    const isCorrectPassword = await bcrypt.compare(passwordFromBd, authData.password);
+    const hashedPassword = user.password;
+    const isCorrectPassword = await bcrypt.compare(password, hashedPassword);
     if (!isCorrectPassword) {
-      return { message: INCORRECT_PASSWORD };
+      throw ApiError.unauthorizedError();
+    }
+    const tokens = TokenService.generateTokens({ id: user._id.toString(), ...payload });
+    await TokenService.saveToken(user._id, tokens.refreshToken);
+    const { name, passport, role, email } = user;
+    return { ...tokens, _id: user._id, name, passport, role, email };
+  }
+
+  async auth(_id: string | JwtPayload) {
+    const user = await User.findById(_id, ['name', 'email', 'role', 'passport']);
+    if (!user) {
+      throw ApiError.serverSideError('пользователь');
     }
     return user;
   }
-  async deleteUser(userId: string) {
-    return await User.findByIdAndDelete(userId);
+
+  async deleteUser(userId: string, refreshToken: string) {
+    const token = await TokenService.deleteToken(refreshToken);
+    const user = await User.findByIdAndDelete(userId);
+    if (!user) {
+      throw ApiError.serverSideError('удаление пользователя');
+    }
+    return { token, user };
   }
 }
 

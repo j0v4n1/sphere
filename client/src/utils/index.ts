@@ -1,5 +1,7 @@
 import { jsonDataReceipts } from 'service/slices/receipts/index.types';
 import { BASE_URL } from '../constants';
+import { NavigateFunction } from 'react-router-dom';
+import { Role } from '../components/navbar/index.types';
 
 const checkResponse = (response: Response | Response[]) => {
   if (Array.isArray(response)) {
@@ -81,20 +83,33 @@ export const addBrand = async (brand: string) => {
 };
 
 export const generatePassword = (options?: { length: number }): string => {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
-  const nums = '0123456789';
-  const passwordLength = options ? options.length : 4;
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  const passwordLength = options ? options.length : 10;
   const generateRandomChar = () => {
     return chars[Math.floor(Math.random() * chars.length)];
   };
-  const generateRandomNum = () => {
-    return nums[Math.floor(Math.random() * nums.length)];
-  };
   let password = '';
-  let passwordNums = '';
   for (let i = 0; i < passwordLength; i++) {
     password += generateRandomChar();
-    passwordNums += generateRandomNum();
   }
-  return password + passwordNums;
+  return password;
+};
+
+export const navigator = (role: string | null, navigate: NavigateFunction) => {
+  switch (role) {
+    case Role.USER:
+      navigate('/receipts');
+      break;
+    case Role.ADMIN:
+      navigate('/users');
+      break;
+    case Role.SUPER_USER:
+      navigate('/receipts');
+      break;
+    case null:
+      navigate('/');
+      break;
+    default:
+      break;
+  }
 };

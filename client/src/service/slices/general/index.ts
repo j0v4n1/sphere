@@ -11,6 +11,7 @@ const initialState: InitialState = {
   request: false,
   loading: false,
   failed: false,
+  isLogout: false,
   providers: [],
   brands: [],
   products: [],
@@ -25,6 +26,9 @@ const general = createSlice({
     updateProviderDocument: (state, action: PayloadAction<TProvider>) => {
       const index = state.providers.findIndex((provider) => provider._id === action.payload._id);
       state.providers[index] = action.payload;
+    },
+    setIsLogout: (state, action: PayloadAction<boolean>) => {
+      state.isLogout = action.payload;
     },
   },
   extraReducers: (builder) => {
@@ -60,6 +64,6 @@ const general = createSlice({
 
 const { reducer, actions } = general;
 
-export const { updateProviderDocument } = actions;
+export const { updateProviderDocument, setIsLogout } = actions;
 
 export default reducer;

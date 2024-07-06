@@ -1,18 +1,17 @@
 import jwt from 'jsonwebtoken';
 import 'dotenv/config';
 import { Types } from 'mongoose';
-import ServerSideError from '../errors/server-side-error';
 import tokenModel from '../models/token';
-
-const { JWT_SECRET } = process.env;
+import Token from '../models/token';
+import ApiError from '../errors/api-error';
 
 class TokenService {
   generateTokens(payload: { id: string; name: string; email: string; passport: string }) {
-    if (!JWT_SECRET) {
-      throw new ServerSideError('Process.env error');
+    if (!process.env.JWT_SECRET) {
+      throw ApiError.serverSideError('секретный ключ');
     }
-    const refreshToken = jwt.sign(payload, JWT_SECRET, { expiresIn: '20s' });
-    const accessToken = jwt.sign(payload, JWT_SECRET, { expiresIn: '30d' });
+    const accessToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '20s' });
+    const refreshToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '30d' });
     return {
       accessToken: `Bearer ${accessToken}`,
       refreshToken: `Bearer ${refreshToken}`,
@@ -25,8 +24,15 @@ class TokenService {
       tokenData.refreshToken = refreshToken;
       return await tokenData.save();
     }
-    const token = await tokenModel.create({ user: userId, refreshToken });
-    return token;
+    return await tokenModel.create({ user: userId, refreshToken });
+  }
+
+  async deleteToken(refreshToken: string) {
+    const token = await Token.findOne({ refreshToken });
+    if (!token) {
+      throw ApiError.serverSideError('токен');
+    }
+    return token.deleteOne();
   }
 }
 

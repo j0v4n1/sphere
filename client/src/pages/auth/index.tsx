@@ -3,21 +3,38 @@ import styles from './index.module.css';
 import Form from 'react-bootstrap/Form';
 import { useEffect, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '../../service/store/index.types';
-import { getUsersThunk } from '../../service/slices/users';
-import { loginUser } from '../../utils/api';
-import { setUser } from '../../service/slices/user';
+import { authenticate, loginUser } from '../../utils/api';
+import { navigator } from '../../utils';
 import { useNavigate } from 'react-router-dom';
-import { Role } from '../../components/navbar/index.types';
+import { setUser } from '../../service/slices/user';
+import Spinner from 'react-bootstrap/Spinner';
 
 const Auth = () => {
   const [login, setLogin] = useState('');
+  const [isAuth, setIsAuth] = useState(false);
+  const [isChecking, setIsChecking] = useState(false);
+  const [isErrorAuth, setIsErrorAuth] = useState(false);
   const [password, setPassword] = useState('');
-  const dispatch = useAppDispatch();
+
+  const { users, loading } = useAppSelector((store) => store.users);
+
   const navigate = useNavigate();
-  const { users } = useAppSelector((store) => store.users);
+  const dispatch = useAppDispatch();
 
   useEffect(() => {
-    dispatch(getUsersThunk());
+    authenticate()
+      .then(({ data }) => {
+        if (data.status === 'failure') {
+          setIsAuth(true);
+          return;
+        }
+        setIsAuth(true);
+        dispatch(setUser(data.data));
+        navigator(data.data.role, navigate);
+      })
+      .catch(() => {
+        console.log('ошибка');
+      });
   }, []);
 
   const selectOptions = users.map((user) => {
@@ -28,38 +45,47 @@ const Auth = () => {
     );
   });
 
-  const navigator = (role: string) => {
-    switch (role) {
-      case Role.USER:
-        navigate('/receipts');
-        break;
-      case Role.ADMIN:
-        navigate('/users');
-        break;
-      case Role.SUPER_USER:
-        navigate('/receipts');
-        break;
-      default:
-        break;
-    }
-  };
-
   const handleLogin = () => {
+    setIsChecking(true);
     const user = users.find((user) => user.name === login);
     user &&
-      loginUser({ _id: user._id, password })
+      loginUser({
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        passport: user.passport,
+        password,
+      })
         .then(({ data }) => {
-          if (data.status === 'success') {
-            dispatch(setUser(data.data));
-            navigator(data.data.role);
-          } else if (data.status === 'success') {
+          if (data.status === 'failure') {
             throw new Error();
           }
+          setIsChecking(false);
+          setIsErrorAuth(false);
+          const { refreshToken, ...userData } = data.data;
+          localStorage.setItem('refreshToken', refreshToken);
+          dispatch(setUser(userData));
+          navigator(data.data.role, navigate);
         })
-        .catch((err) => console.log(err));
+        .catch((err) => {
+          if (err.response.data === 'Пользователь не авторизован') {
+            setIsErrorAuth(true);
+          }
+        });
   };
 
-  return (
+  return loading || !isAuth ? (
+    <div
+      style={{
+        height: 'calc(100vh - 56px)',
+        width: '100vw',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}>
+      <Spinner />
+    </div>
+  ) : (
     <>
       <div className={styles.wrapper}>Добро пожаловать в Сферу - программу для работы с ЭДО.</div>
       <Form className={styles.form}>
@@ -80,17 +106,22 @@ const Auth = () => {
         <Form.Group className={styles.group}>
           <Form.Label htmlFor="inputPassword">Пароль:</Form.Label>
           <Form.Control
+            isInvalid={isErrorAuth}
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             type="password"
             id="inputPassword"
           />
           <Form.Text id="passwordHelpBlock" muted>
-            Ваш пароль должен быть длиной от 8 до 20 символов, содержать буквы и цифры, и не должен
-            содержать пробелов, специальных символов или эмодзи.
+            {isErrorAuth
+              ? 'Пароль набран неверно'
+              : ' Ваш пароль должен быть длиной от 8 до 20 символов, содержать буквы и цифры, и не должен\n' +
+                '            содержать пробелов, специальных символов или эмодзи.'}
           </Form.Text>
         </Form.Group>
-        <Button onClick={handleLogin}>Войти</Button>
+        <Button disabled={isChecking} onClick={handleLogin}>
+          {isChecking ? 'Входим...' : 'Войти'}
+        </Button>
       </Form>
     </>
   );

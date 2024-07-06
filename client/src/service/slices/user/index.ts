@@ -16,7 +16,7 @@ const user = createSlice({
   name: 'user',
   initialState,
   reducers: {
-    setUser: (state, action: PayloadAction<UserWithTokens>) => {
+    setUser: (state, action: PayloadAction<Omit<UserWithTokens, 'refreshToken'>>) => {
       state._id = action.payload._id;
       state.accessToken = action.payload.accessToken;
       state.name = action.payload.name;
@@ -33,15 +33,23 @@ const user = createSlice({
           state.role = Role.SUPER_USER;
           break;
         default:
-          state.role = state.role;
+          state.role = null;
           break;
       }
+    },
+    removeUser: (state) => {
+      state._id = '';
+      state.accessToken = '';
+      state.name = '';
+      state.email = '';
+      state.passport = '';
+      state.role = null;
     },
   },
 });
 
 const { reducer, actions } = user;
 
-export const { setUser } = actions;
+export const { setUser, removeUser } = actions;
 
 export default reducer;

@@ -2,12 +2,37 @@ import Button from 'react-bootstrap/Button';
 import Container from 'react-bootstrap/Container';
 import Form from 'react-bootstrap/Form';
 import Nav from 'react-bootstrap/Nav';
-import { Navbar as NavbarBootstrap } from 'react-bootstrap';
+import { Dropdown, DropdownButton, Navbar as NavbarBootstrap } from 'react-bootstrap';
 import NavDropdown from 'react-bootstrap/NavDropdown';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { NavbarProps, Role } from './index.types';
+import { useAppDispatch, useAppSelector } from 'service/store/index.types';
+import { logoutUser } from '../../utils/api';
+import { removeUser } from 'service/slices/user';
+import { navigator } from '../../utils';
+import { setIsLogout } from '../../service/slices/general';
 
 export default function Navbar({ role }: NavbarProps) {
+  const { name } = useAppSelector((store) => store.user);
+  const dispatch = useAppDispatch();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    dispatch(setIsLogout(true));
+    const refreshToken = localStorage.getItem('refreshToken');
+    if (!refreshToken) {
+      throw new Error();
+    }
+    logoutUser(refreshToken)
+      .then(() => {
+        dispatch(setIsLogout(false));
+        localStorage.removeItem('refreshToken');
+        dispatch(removeUser());
+        navigator(null, navigate);
+      })
+      .catch((err) => console.log(err));
+  };
+
   const navbarBrand = () => {
     switch (role) {
       case Role.ADMIN:
@@ -77,7 +102,7 @@ export default function Navbar({ role }: NavbarProps) {
     }
   };
 
-  const isShowenSearchBar = role ? (
+  const isShowedSearchBar = role ? (
     <Form className="d-flex">
       <Form.Control type="search" placeholder="Поиск" className="me-2" aria-label="Search" />
       <Button variant="outline-success">Найти</Button>
@@ -93,7 +118,23 @@ export default function Navbar({ role }: NavbarProps) {
           <Nav className="me-auto my-2 my-lg-0" style={{ maxHeight: '100px' }} navbarScroll>
             {navbarLinks()}
           </Nav>
-          {isShowenSearchBar}
+          {role ? (
+            <DropdownButton
+              className="mx-3"
+              id="dropdown-basic-button"
+              title={name.split(' ').map((el, index) => {
+                if (index === 1) {
+                  return `${el.slice(0, 1)}.`;
+                }
+                if (index === 0) {
+                  return `${el} `;
+                }
+                return index !== 2 && el;
+              })}>
+              <Dropdown.Item onClick={handleLogout}>Выйти</Dropdown.Item>
+            </DropdownButton>
+          ) : null}
+          {isShowedSearchBar}
         </NavbarBootstrap.Collapse>
       </Container>
     </NavbarBootstrap>

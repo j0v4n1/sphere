@@ -18,7 +18,7 @@ import ProductDetails from '../product_details';
 import Warning from '../warning';
 import { TNomenclatureProduct } from 'service/slices/receipts/index.types';
 import UserCreate from '../user_create';
-import { sendUserData } from '../../utils/api';
+import { createUser } from '../../utils/api';
 import { resetFormData } from '../../service/slices/new_user';
 import { UserWithTokens } from 'service/slices/users/index.types';
 import { addNewUser } from 'service/slices/users';
@@ -114,7 +114,7 @@ const ModalSwitch = () => {
         if (!role) {
           return console.log('error');
         }
-        sendUserData({ name, email, role, password, passport }).then(
+        createUser({ name, email, role, password, passport }).then(
           (data: { status: string; data: UserWithTokens }) => {
             dispatch(addNewUser(data.data));
             dispatch(resetFormData());
